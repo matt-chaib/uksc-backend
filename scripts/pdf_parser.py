@@ -68,22 +68,25 @@ def find_country_in_address(address, total_text):
             return country
     
     # Search for the cutoff address in the text
-    if address in total_text:
+    first_10_chars = address[:10]
+    if first_10_chars in total_text:
         # Find all country names in the text that come after the cutoff address
-        after_cutoff = address + total_text.split(address, 1)[1][:100]  # Get everything after the cutoff address
+        after_cutoff = first_10_chars + total_text.split(first_10_chars, 1)[1][:150]  # Get everything after the cutoff address
 
         # Check for any country name in the remaining text
         for country in country_list:
             if country in after_cutoff:
                 return country
     else:
+        print(first_10_chars)
+        print(address)
         return None
 
 def extract_text_from_pdf(file_path, company):
     if (company == "Sainsburys"):
         reader = PdfReader(file_path)
         names = []
-        addresses = []
+        addresses_all = []
         sectors = []
         workers = []
         countries = []
@@ -100,9 +103,10 @@ def extract_text_from_pdf(file_path, company):
             fitz.Rect(195, 0, 261, 1000),
             fitz.Rect(262, 0, 305, 1000)
         ]
-
+        total_text = ""
         for page_num, page in enumerate(doc):
-            total_text = reader.pages[page_num].extract_text()  # Extract text from each page
+            addresses = []
+            total_text += reader.pages[page_num].extract_text()  # Extract text from each page
 
             for index, bbox in enumerate(bboxes):
                 # Extract text within the bbox
@@ -122,6 +126,7 @@ def extract_text_from_pdf(file_path, company):
                         if (index == 1):
                             if (line != ''):
                                 addresses.append(line)
+                                addresses_all.append(line)
                         if (index == 2):
                             if (line != ''):
                                 sectors.append(line)
@@ -130,11 +135,11 @@ def extract_text_from_pdf(file_path, company):
                                 workers.append(int(line))
 
 
-        for address_line in addresses:
+        for address_line in addresses_all:
             country = find_country_in_address(address_line, total_text)
             countries.append(country)
         print(len(names))
-        print(len(addresses))
+        print(len(addresses_all))
         print(len(sectors))
         print(len(workers))
         print(len(countries))
@@ -142,7 +147,7 @@ def extract_text_from_pdf(file_path, company):
 
         data = {
             "Name": names,
-            "Address": addresses,
+            "Address": addresses_all,
             "Sector": sectors,
             "Workers": workers,
             "Country": countries
