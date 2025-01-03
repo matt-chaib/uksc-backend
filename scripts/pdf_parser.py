@@ -34,7 +34,8 @@ country_list = [
 # Define a function to parse the text
 def parse_pdf_text(text, year, company):
 
-    header = "transparency in the supply chain."
+    header = """  Total 
+Workers"""
     if header in text:
         # Extract the portion after the header
         text = text.split(header, 1)[1].strip()
@@ -43,21 +44,23 @@ def parse_pdf_text(text, year, company):
         return pd.DataFrame()  # Return empty DataFrame if header is missing
 
 
+    # Magic.
+    text = text.replace(" Poland", "  Poland", 1)
+
     # Regex pattern for structured parsing
     pattern = get_pattern[company]
 
     # Use re.findall with the pattern
-    matches = re.finditer(pattern, text, re.VERBOSE)
-
+    matches = list(re.finditer(pattern, text, re.VERBOSE))  # Convert iterator to a list
+    
     # Create a list of parsed data
     data = []
     for match in matches:
         data.append(match.groupdict())
-    
+
+    print(text[:300])
     df =  pd.DataFrame(data)
-    
-    df['year'] = year
-    
+        
     # Return as a DataFrame for better handling
     return df
 
@@ -154,7 +157,9 @@ def extract_text_from_pdf(file_path, company):
         }
 
         df = pd.DataFrame(data)
-        df.to_csv("sainsburys.csv", index=False)
+
+        df = df.iloc[1:].reset_index(drop=True)
+
         return df
 
     else:
@@ -175,9 +180,14 @@ if __name__ == "__main__":
         #     "filename": "./data/tesco_2024.pdf",
         #     "year": "2024"
         # },
-         {
-            "company": "Sainsburys",
-            "filename": "./data/sainsburys_2024_food.pdf",
+        #  {
+        #     "company": "Sainsburys",
+        #     "filename": "./data/sainsburys_2024_food.pdf",
+        #     "year": "2024"
+        # },
+          {
+            "company": "Asda",
+            "filename": "./data/asda_2024.csv",
             "year": "2024"
         }
     ]
@@ -185,16 +195,40 @@ if __name__ == "__main__":
     for row in data_definition:
         match row["company"]:
             case "Tesco":
-                parsed_data = parse_pdf_text(extract_text_from_pdf(row["filename"], row["company"]), row["year"], row["company"])
-
+                df = parse_pdf_text(extract_text_from_pdf(row["filename"], row["company"]), row["year"], row["company"])
+                df['year'] = row["year"]
+                df["source_business"] = row["company"]
+                df.to_csv("tescos.csv", index=False)
             case "Sainsburys":
-                extract_text_from_pdf(row["filename"], row["company"])
-                parsed_data = pd.DataFrame()
+                df = extract_text_from_pdf(row["filename"], row["company"])
+                df['year'] = row["year"]
+                df["source_business"] = row["company"]
+                df.to_csv("sainsburys.csv", index=False)
+            case "Asda":
+                df = pd.read_csv(row["filename"])
+                df_filtered = df.filter(items=["name", "address", "country_name"])
+                pattern = r"Asda \(Asda OSH facility list 2024 \(January - June 2024\)\)$"
+                df_filtered["workers"] = None
+                df_filtered["sector"] = None
+               # Iterate over the rows
+                for index, row in df.iterrows():
+                    print(row)
+                    if re.search(pattern, row["contributor (list)"]):
+                        # Extract the last digits from "number_of_workers"
+                        if (row["number_of_workers"] and not pd.isna(row["number_of_workers"])):
+                            last_digits = re.search(r"[\d-]+$", row["number_of_workers"])
+                            if last_digits:
+                                df_filtered.at[index, "workers"] = last_digits.group()
+
+                        # Extract the last set of characters not including "|"
+                        if (row["sector"]):
+                            last_sector = re.search(r"[^|]+$", row["sector"])
+                            if last_sector:
+                                df_filtered.at[index, "sector"] = last_sector.group().strip()
+
+                # Print or save the filtered DataFrame
+                print(df_filtered)
+                df_filtered.to_csv("asda.csv", index=False)
             case _:
                 parsed_data = pd.DataFrame()
-
-    # Parse the raw text
-    # Display the parsed data
-    print(parsed_data)
-    # parsed_data
-    # parsed_data.to_csv("parsed_suppliers.csv", index=False)
+        # print(df)
