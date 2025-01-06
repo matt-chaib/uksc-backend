@@ -5,6 +5,15 @@ import fitz
 import re
 import pandas as pd
 
+import django
+import os
+import sys
+sys.path.append('/home/mogs/Desktop/webdev_projects/uksupplychain/uksc_backend/uksc_backend_django')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'uksc_backend_django.settings')
+django.setup()
+
+from base.models import Supplier 
+
 get_pattern = {
     "Tesco": r"""
         (?P<site_name>.+?)\s{2,}                # Site name until the first hyphen
@@ -149,11 +158,11 @@ def extract_text_from_pdf(file_path, company):
         workers.insert(0, "workers")
 
         data = {
-            "Name": names,
-            "Address": addresses_all,
-            "Sector": sectors,
-            "Workers": workers,
-            "Country": countries
+            "supplier": names,
+            "address": addresses_all,
+            "sector": sectors,
+            "workers": workers,
+            "country": countries
         }
 
         df = pd.DataFrame(data)
@@ -172,37 +181,46 @@ def extract_text_from_pdf(file_path, company):
 
 
 if __name__ == "__main__":
-    # print(extract_text_from_pdf("./data/tesco_2024.pdf"))
 
     data_definition = [
-        # {
-        #     "company": "Tesco",
-        #     "filename": "./data/tesco_2024.pdf",
-        #     "year": "2024"
-        # },
-        #  {
-        #     "company": "Sainsburys",
-        #     "filename": "./data/sainsburys_2024_food.pdf",
-        #     "year": "2024"
-        # },
+        {
+            "company": "Tesco",
+            "filename": "/home/mogs/Desktop/webdev_projects/uksupplychain/uksc_backend/uksc_backend_django/data/tesco_2024.pdf",
+            "year": "2024"
+        },
+         {
+            "company": "Sainsburys",
+            "filename": "/home/mogs/Desktop/webdev_projects/uksupplychain/uksc_backend/uksc_backend_django/data/sainsburys_2024_food.pdf",
+            "year": "2024"
+        },
           {
             "company": "Asda",
-            "filename": "./data/asda_2024.csv",
+            "filename": "/home/mogs/Desktop/webdev_projects/uksupplychain/uksc_backend/uksc_backend_django/data/asda_2024.csv",
             "year": "2024"
         }
     ]
 
+    total_data = pd.DataFrame()
+
+    # supplier, address, country, workers, sector
     for row in data_definition:
         match row["company"]:
             case "Tesco":
                 df = parse_pdf_text(extract_text_from_pdf(row["filename"], row["company"]), row["year"], row["company"])
                 df['year'] = row["year"]
                 df["source_business"] = row["company"]
+                df['sector'] = None
+                df = df.rename(columns={'company_name': 'supplier', 'site_address': 'address', 'total_workers': 'workers'})
+                print(df.columns)
+                df = df.drop(['site_name'], axis=1)
+                total_data = pd.concat([total_data, df])
                 df.to_csv("tescos.csv", index=False)
             case "Sainsburys":
                 df = extract_text_from_pdf(row["filename"], row["company"])
                 df['year'] = row["year"]
                 df["source_business"] = row["company"]
+                # df = df.rename(columns={'country_name': 'country', 'name': 'supplier'})
+                total_data =  pd.concat([total_data, df])
                 df.to_csv("sainsburys.csv", index=False)
             case "Asda":
                 df = pd.read_csv(row["filename"])
@@ -211,24 +229,39 @@ if __name__ == "__main__":
                 df_filtered["workers"] = None
                 df_filtered["sector"] = None
                # Iterate over the rows
-                for index, row in df.iterrows():
-                    print(row)
-                    if re.search(pattern, row["contributor (list)"]):
+                for index, dat in df.iterrows():
+                    print(dat)
+                    if re.search(pattern, dat["contributor (list)"]):
                         # Extract the last digits from "number_of_workers"
-                        if (row["number_of_workers"] and not pd.isna(row["number_of_workers"])):
-                            last_digits = re.search(r"[\d-]+$", row["number_of_workers"])
+                        if (dat["number_of_workers"] and not pd.isna(dat["number_of_workers"])):
+                            last_digits = re.search(r"[\d-]+$", dat["number_of_workers"])
                             if last_digits:
                                 df_filtered.at[index, "workers"] = last_digits.group()
 
                         # Extract the last set of characters not including "|"
-                        if (row["sector"]):
-                            last_sector = re.search(r"[^|]+$", row["sector"])
+                        if (dat["sector"]):
+                            last_sector = re.search(r"[^|]+$", dat["sector"])
                             if last_sector:
                                 df_filtered.at[index, "sector"] = last_sector.group().strip()
 
                 # Print or save the filtered DataFrame
                 print(df_filtered)
+                df_filtered['year'] = row["year"]
+                df_filtered["source_business"] = row["company"]
+                df_filtered = df_filtered.rename(columns={'name': 'supplier', 'country_name': 'country'})
+                total_data = pd.concat([total_data, df_filtered])
                 df_filtered.to_csv("asda.csv", index=False)
             case _:
                 parsed_data = pd.DataFrame()
-        # print(df)
+    
+    total_data.to_csv("total_data.csv", index=False)
+    for _, row in total_data.iterrows():
+        Supplier.objects.create(
+            supplier=row['supplier'],
+            address=row['address'],
+            country=row['country'],
+            workers=row['workers'],
+            sector=row['sector'],
+            year=row['year'],
+            source_business=row['source_business']
+        )
