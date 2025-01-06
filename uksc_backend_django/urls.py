@@ -20,12 +20,17 @@ from rest_framework.routers import DefaultRouter
 from base.views import SupplierViewSet
 from base.views import health_check
 from base.views import get_supplier_data
+from base.views import count_country_by_year_and_supermarket
+from base.views import get_all
+
 router = DefaultRouter()
 router.register(r'base', SupplierViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include(router.urls)),
+    path('all', get_all, name="get_all"), 
     path('health/', health_check, name='health_check'),
     path('suppliers-head/', get_supplier_data, name='get_supplier_data'),
+    path('country-count/<int:year>/', count_country_by_year_and_supermarket, name='country-count-by-year'),
 ]

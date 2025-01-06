@@ -5,7 +5,6 @@ A simple dashboard to interactively display supply chain data from UK businesses
 # Technologies
 
 - Django
-- Prisma 
 - PostgreSQL
 - Docker
 - Leaflet

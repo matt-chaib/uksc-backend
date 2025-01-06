@@ -18,7 +18,8 @@ class Command(BaseCommand):
 
         # Iterate through the rows of the DataFrame and create model instances
         for _, row in df.iterrows():
-            print(row)
+        #     if "KATSOU" in row['supplier']:
+        #         print(row)
             # Create and save a FoodSupplier object from the DataFrame row
             Supplier.objects.create(
                 supplier=row['supplier'],

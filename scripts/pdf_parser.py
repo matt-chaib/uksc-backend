@@ -171,6 +171,140 @@ def extract_text_from_pdf(file_path, company):
 
         return df
 
+    if (company == "Tesco"):
+        reader = PdfReader(file_path)
+        names = []
+        addresses_all = []
+        sectors = []
+        workers = []
+        countries = []
+
+        doc = fitz.open(file_path)
+
+        # Access the first page (0-indexed)
+        page = doc[0]  # Change index for other pages if needed
+
+        # Define the bounding box (bbox)
+        bboxes = [
+            fitz.Rect(50, 0, 290, 1200),
+            fitz.Rect(292, 0, 432, 1000),
+            fitz.Rect(434, 0, 660, 1000),
+            fitz.Rect(662, 0, 725, 1000),
+            fitz.Rect(727, 0, 782, 1000)
+        ]
+        total_text = ""
+        
+        for page_num, page in enumerate(doc):
+            addresses = []
+            total_text += reader.pages[page_num].extract_text()  # Extract text from each page
+
+            for index, bbox in enumerate(bboxes):
+
+                if (page_num == 0):
+                    bbox.y0 = 300
+                    bbox.y1  = 545
+                else:
+                    bbox.y0 = 15
+                    bbox.y1  = 537
+
+                if page_num == 1:
+                    # Highlight the bbox
+                    highlight = page.add_rect_annot(bbox)
+                    highlight.set_colors({"stroke": (1, 0, 0), "fill": (1, 1, 0)})  # Red stroke, yellow fill
+                    highlight.update()
+
+                    # Save the modified PDF without incremental saving
+                    output_path = "highlighted_output" + str(index) + ".pdf"
+                    doc.save(output_path)
+                    print(f"Highlighted PDF saved to {output_path}")
+
+                # Extract text within the bbox
+                text_in_bbox = page.get_text("blocks", clip=bbox)
+
+                # Print the extracted text blocks
+                for block in text_in_bbox:
+                    block_text = block[4]  # Text content of the block
+                    print("New block")
+                    print(block_text)
+                    # If you want to further extract lines from the block, you can split by line breaks:
+                    line = block_text
+                    print("lines")
+               
+                    line = line.strip()
+                    if (index == 0):
+                            names.append(line)
+                    if (index == 1):
+                        None
+                            # addresses.append(line)
+                            # addresses_all.append(line)
+                    if (index == 2):
+                            addresses.append(line)
+                            addresses_all.append(line)
+                            # sectors.append(None)
+                            # sectors.append(line)
+                    if (index == 3):
+                            countries.append(line)
+                    if (index == 4):
+                            workers.append(line)
+
+        # workers.insert(0, "workers")
+        # addresses_all.insert(301, "Cranswick Plc") # If using company names
+
+        addresses_all[294] = str.replace(addresses_all[294], """Lot A01-A12, Zone A, Phong Dien Industrial Zone Phong Dien Town, 
+        Phong Dien District Phong Dien 530000""", "")
+        addresses_all.insert(294, """Lot A01-A12, Zone A, Phong Dien Industrial Zone Phong Dien Town, 
+Phong Dien District Phong Dien 530000""")
+
+        addresses_all[846] = str.replace(addresses_all[846], """NO.133 SHUANGYUAN ROAD,CHENGYANG 
+DISTRICT,QINGDAO,CHINA/NO.27-1,Tianshan 3rd Road, Daxin 
+Street,Jimo District, Qingdao, China  Qingdao 266109""", "")
+        addresses_all.insert(846, """NO.133 SHUANGYUAN ROAD,CHENGYANG 
+DISTRICT,QINGDAO,CHINA/NO.27-1,Tianshan 3rd Road, Daxin 
+Street,Jimo District, Qingdao, China  Qingdao 266109""")
+        
+        addresses_all[923] = str.replace(addresses_all[923], """CTRA. CUEVAS DEL ALMANZORA-AGUILAS KM.11 CUEVAS DEL ALMANZORA Cuevas de Almanzora 4610""", "")
+        addresses_all.insert(924, """CTRA. CUEVAS DEL ALMANZORA-AGUILAS KM.11 CUEVAS DEL 
+ALMANZORA Cuevas de Almanzora 4610""")
+        
+        addresses_all[952] = str.replace(addresses_all[952], """No.1358 & No. 1428 Jiahang Rd, Xuhang Town, Jiading District  
+Shanghai 201808""", "")
+        addresses_all.insert(953, """No.1358 & No. 1428 Jiahang Rd, Xuhang Town, Jiading District  
+Shanghai 201808""") 
+
+        data = {
+            "supplier": names,
+            "address": addresses_all,
+            # "sector": sectors,
+            "workers": workers,
+            "country": countries
+        }
+        # Determine the number of rows (assuming all lists have the same length)
+        num_rows = len(names)
+
+        # Loop through each row and print the values
+        for i in range(min(num_rows, 976)):  # Ensure only first 10 rows are printed
+            print(f"Row {i+1}:")
+            for key in data:
+                print(f"{key.capitalize()}: {data[key][i]}")
+            print()  # Blank line for better readability
+        
+        print(len(names))
+        print(len(addresses_all))
+        print(len(sectors))
+        print(len(workers))
+        print(len(countries))
+
+        data_subset = {key: value[0:1137] for key, value in data.items()}
+        for key, value in data_subset.items():
+            print(f"Length of {key}: {len(value)}")
+        df = pd.DataFrame(data_subset)
+
+        df["sectors"] = None
+
+        df = df.iloc[1:].reset_index(drop=True)
+
+        return df
+
     else:
         """Extracts text from a PDF file."""
         reader = PdfReader(file_path)
@@ -206,13 +340,13 @@ if __name__ == "__main__":
     for row in data_definition:
         match row["company"]:
             case "Tesco":
-                df = parse_pdf_text(extract_text_from_pdf(row["filename"], row["company"]), row["year"], row["company"])
+                df = extract_text_from_pdf(row["filename"], row["company"])
                 df['year'] = row["year"]
                 df["source_business"] = row["company"]
                 df['sector'] = None
-                df = df.rename(columns={'company_name': 'supplier', 'site_address': 'address', 'total_workers': 'workers'})
+                # df = df.rename(columns={'company_name': 'supplier', 'site_address': 'address', 'total_workers': 'workers'})
                 print(df.columns)
-                df = df.drop(['site_name'], axis=1)
+                # df = df.drop(['site_name'], axis=1)
                 total_data = pd.concat([total_data, df])
                 df.to_csv("tescos.csv", index=False)
             case "Sainsburys":
