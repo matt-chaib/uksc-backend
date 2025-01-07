@@ -1,13 +1,13 @@
 import json
 from django.core.management.base import BaseCommand
-from myapp.models import CountryData
+from base.models import CountryData
 from django.contrib.gis.geos import GEOSGeometry
 
 class Command(BaseCommand):
     help = "Load GeoJSON data into the database"
 
     def handle(self, *args, **kwargs):
-        with open('/path/to/countries.geojson') as f:
+        with open('data/countries.geo.json') as f:
             geojson_data = json.load(f)
             for feature in geojson_data['features']:
                 properties = feature['properties']

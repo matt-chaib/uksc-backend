@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from base.views import *
+from base.views import CountryDataGeoJsonView
 
 router = DefaultRouter()
 router.register(r'base', SupplierViewSet)
@@ -30,4 +31,5 @@ urlpatterns = [
     path('suppliers-head/', get_supplier_data, name='get_supplier_data'),
     path('country-count-business/<int:year>/', count_country_by_year_and_supermarket, name='country-count-by-year-and-supermarket'),
     path('country-count/<int:year>/', count_country_by_year, name='country-count-by-year'),
+    path('api/countries/', CountryDataGeoJsonView.as_view(), name='country-data'),
 ]

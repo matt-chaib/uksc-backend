@@ -11,12 +11,9 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-postgis.sh:/docker-entrypoint-initdb.d/init-postgis.sh  # Custom initialization script
     networks:
       - app_network
-    command: >
-      bash -c "docker-entrypoint.sh postgres & 
-               sleep 10 &&
-               psql -U postgres -d food_supplier_db -c 'CREATE EXTENSION IF NOT EXISTS postgis;'"
 
   web:
     build: .

@@ -5,3 +5,7 @@ docker compose exec web python manage.py seed_database
 docker compose exec web python manage.py flush
 
 docker compose exec web python manage.py makemigrations
+
+psql -h localhost -U postgres -d food_supplier_db -p 5432
+
+docker compose exec db psql -U postgres -d food_supplier_db
