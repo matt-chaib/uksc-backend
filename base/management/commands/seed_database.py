@@ -12,9 +12,21 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         # Load your pandas DataFrame from your script
         # Example: Assuming your pandas script is inside /scripts and creates a DataFrame
-        df = pd.read_csv('total_data.csv')  # or use any method to load your DataFrame
+        df = pd.read_csv('output_data/total_data.csv')  # or use any method to load your DataFrame
         print(df)
         workers = 0 # row['workers'] if pd.notna(row['workers']) else 0 # Set to None if NaN
+
+        country_dictionary = {
+        "Türkiye": "Turkey",
+        "Cyprus (South)": "Cyprus",
+        """Republic of                     +
+        | Ireland""": "Ireland",
+        "United States": "USA",
+        "Scotland": "United Kingdom"
+    }
+
+        df['country'] = df['country'].apply(lambda x: country_dictionary.get(x, x))
+
 
         # Iterate through the rows of the DataFrame and create model instances
         for _, row in df.iterrows():

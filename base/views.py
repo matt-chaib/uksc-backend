@@ -52,3 +52,19 @@ def count_country_by_year_and_supermarket(request, year):
 
     # Return the results as JSON
     return Response(result)
+
+@api_view(['GET'])
+def count_country_by_year(request, year):
+    result = (
+        Supplier.objects.filter(year=year)
+        .values('country')
+        .annotate(count=Count('country'))
+        .order_by('country')
+    )
+
+    # For debugging: print results to the console
+    for item in result:
+        print(item)
+
+    # Return the results as JSON
+    return Response(result)

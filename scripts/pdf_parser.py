@@ -388,6 +388,17 @@ if __name__ == "__main__":
             case _:
                 parsed_data = pd.DataFrame()
     
+    country_dictionary = {
+        "Türkiye": "Turkey",
+        "Cyprus (South)": "Cyprus",
+        """Republic of                     +
+        | Ireland""": "Ireland",
+        "United States": "USA",
+        "Scotland": "United Kingdom"
+    }
+
+    total_data['country'] = total_data['country'].apply(lambda x: country_dictionary.get(x, x))
+
     total_data.to_csv("total_data.csv", index=False)
     for _, row in total_data.iterrows():
         Supplier.objects.create(
