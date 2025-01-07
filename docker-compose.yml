@@ -1,7 +1,7 @@
 version: '3.9'
 services:
   db:
-    image: postgres:14
+    image: postgis/postgis:14-3.1
     container_name: postgres_db
     environment:
       POSTGRES_USER: postgres
@@ -13,6 +13,10 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app_network
+    command: >
+      bash -c "docker-entrypoint.sh postgres & 
+               sleep 10 &&
+               psql -U postgres -d food_supplier_db -c 'CREATE EXTENSION IF NOT EXISTS postgis;'"
 
   web:
     build: .

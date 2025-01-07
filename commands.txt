@@ -1,0 +1,7 @@
+
+docker compose exec web python manage.py seed_database
+
+(clears data from db)
+docker compose exec web python manage.py flush
+
+docker compose exec web python manage.py makemigrations

@@ -1,7 +1,13 @@
 from django.db import models
+from django.contrib.gis.db import models
 
-# Create your models here.
+class CountryData(models.Model):
+    name = models.CharField(max_length=255)
+    geom = models.GeometryField()  # Or use PolygonField if you expect polygons
 
+    def __str__(self):
+        return self.name
+    
 class Supplier(models.Model):
     supplier = models.CharField(max_length=255)
     address = models.TextField()
