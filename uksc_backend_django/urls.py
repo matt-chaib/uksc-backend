@@ -32,4 +32,5 @@ urlpatterns = [
     path('country-count-business/<int:year>/', count_country_by_year_and_supermarket, name='country-count-by-year-and-supermarket'),
     path('country-count/<int:year>/', count_country_by_year, name='country-count-by-year'),
     path('api/countries/', CountryDataGeoJsonView.as_view(), name='country-data'),
+    path('business-count/<int:year>/', count_supermarket_by_year_and_country, name='business-count')
 ]

@@ -14,6 +14,8 @@ from .serializers import CountryDataSerializer
 from django.core.serializers import serialize
 from rest_framework.views import APIView
 import json
+from collections import defaultdict
+from django.db.models import Q
 
 class SupplierViewSet(viewsets.ModelViewSet):
     queryset = Supplier.objects.all()
@@ -51,6 +53,45 @@ def count_country_by_year_and_supermarket(request, year):
         .annotate(country_count=Count('country'))
         .order_by('source_business', 'country')
     )
+
+    # Return the results as JSON
+    return Response(result)
+
+@api_view(['GET'])
+def count_supermarket_by_year_and_country(request, year):
+
+    asda_sectors = [
+        'Agriculture', 'Food Manufacturing', 'Pharmaceuticals', 'Crop Production',
+        'Food Industry', 'Food & Beverage', 'Food', 'Chemicals', 'Beverages',
+        'Animal Production', 'Farming'
+    ]
+
+    data = (
+        Supplier.objects.filter(year=year)
+        .filter(
+            Q(source_business='Asda', sector__in=asda_sectors) | ~Q(source_business='Asda')
+        )
+        .values('source_business', 'country')
+        .annotate(business_count=Count('source_business'))
+        .order_by('source_business', 'country')
+    )
+
+    all_businesses = {entry["source_business"] for entry in data}
+
+    result_dict = defaultdict(dict)
+
+    for entry in data:
+        country = entry["country"]
+        business = entry["source_business"]
+        count = entry["business_count"]
+        result_dict[country]["country"] = country  # Ensure country is always set
+        result_dict[country][business] = count     # Set business count for each source_business
+
+    for country_data in result_dict.values():
+        for business in all_businesses:
+            country_data.setdefault(business, 0)
+    # Convert the grouped data into a list
+    result = list(result_dict.values())
 
     # Return the results as JSON
     return Response(result)
