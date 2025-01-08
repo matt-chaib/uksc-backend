@@ -13,6 +13,7 @@ from .models import CountryData
 from .serializers import CountryDataSerializer
 from django.core.serializers import serialize
 from rest_framework.views import APIView
+import json
 
 class SupplierViewSet(viewsets.ModelViewSet):
     queryset = Supplier.objects.all()
@@ -70,38 +71,14 @@ def count_country_by_year(request, year):
     # Return the results as JSON
     return Response(result)
 
-class CountryDataGeoJsonView(APIView):
+class CountryDataGeoJsonView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
-        # Serialize the queryset to GeoJSON, ensuring it's returned as a proper object
         geojson_data = serialize(
             "geojson", 
             CountryData.objects.all(), 
-            geometry_field="geom",  # Specify the geometry field
-            fields=["id", "name"]   # Specify other fields to include
+            geometry_field="geom", 
+            fields=("name",)
         )
-        geojson_square = {
-    "type": "FeatureCollection",
-    "features": [
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [
-                    [
-                        [0, 0],  # Bottom-left corner
-                        [1, 0],  # Bottom-right corner
-                        [1, 1],  # Top-right corner
-                        [0, 1],  # Top-left corner
-                        [0, 0]   # Close the polygon back to the starting point
-                    ]
-                ]
-            },
-            "properties": {
-                "name": "Simple Square"
-            }
-        }
-    ]
-}
-
-        # Ensure geojson_data is a valid Python dictionary, not a string
-        return JsonResponse(geojson_square, safe=False)
+        geojson_object = json.loads(geojson_data)  # Convert to dict
+        features_list = geojson_object["features"]  # Extract features only
+        return JsonResponse(features_list, safe=False)  # Send features as JSON
