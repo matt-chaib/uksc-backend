@@ -9,6 +9,8 @@ RUN apt-get update && \
     build-essential \
     libpq-dev \
     curl \
+    # Install PostGIS if you're managing PostgreSQL here, otherwise, skip if DB is separate
+    postgresql-16-postgis-3 \
     && apt-get clean
 
 # Set the working directory inside the container
