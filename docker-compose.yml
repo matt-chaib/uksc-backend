@@ -31,7 +31,6 @@ services:
       - db
     environment:
       DJANGO_SETTINGS_MODULE: uksc_backend_django.settings
-      DATABASE_URL: postgres://postgres:postgres@db:5432/food_supplier_db
       DEBUG: "False"
       ALLOWED_HOSTS: "your-railway-app-url.up.railway.app"
     networks:

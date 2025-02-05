@@ -85,22 +85,21 @@ WSGI_APPLICATION = 'uksc_backend_django.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 import environ
-
+import os
 # Initialise environment variables
 env = environ.Env()
 environ.Env.read_env() 
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': env('DB_NAME'),
-        'USER': env('DB_USER'),
-        'PASSWORD': env('DB_PASSWORD'),
-        'HOST': env('DB_HOST'),
-        'PORT': env('DB_PORT'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env('DB_NAME', default=os.getenv('DB_NAME')),
+        'USER': env('DB_USER', default=os.getenv('DB_USER')),
+        'PASSWORD': env('DB_PASSWORD', default=os.getenv('DB_PASSWORD')),
+        'HOST': env('DB_HOST', default=os.getenv('DB_HOST')),
+        'PORT': env('DB_PORT', default=os.getenv('DB_PORT')),
     }
 }
-
 DEBUG = env('DEBUG', default=False)
 SECRET_KEY = env('SECRET_KEY')
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost'])
