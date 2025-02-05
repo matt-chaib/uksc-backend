@@ -89,16 +89,13 @@ import os
 # Initialise environment variables
 env = environ.Env()
 environ.Env.read_env() 
+import dj_database_url
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',  # Use the PostGIS backend
-        'NAME': env('PGDATABASE', default=os.getenv('PGDATABASE')),
-        'USER': env('PGUSER', default=os.getenv('PGUSER')),
-        'PASSWORD': env('PGPASSWORD', default=os.getenv('PGPASSWORD')),
-        'HOST': env('PGHOST', default=os.getenv('PGHOST')),
-        'PORT': env('PGPORT', default=os.getenv('PGPORT', 5432)),  # Default port for PostgreSQL
-    }
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL'),
+        conn_max_age=600,  # Optional: connection pooling
+    )
 }
 DEBUG = env('DEBUG', default=False)
 SECRET_KEY = env('SECRET_KEY')
