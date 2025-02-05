@@ -6,3 +6,4 @@ psycopg2-binary>=2.9
 django-cors-headers
 django-environ
 djangorestframework-gis
+dj_database_url
