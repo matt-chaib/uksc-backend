@@ -1,5 +1,4 @@
 version: '3.9'
-
 services:
   db:
     image: postgis/postgis:14-3.1
@@ -19,21 +18,13 @@ services:
   web:
     build: .
     container_name: django_app
-    command: >
-      sh -c "python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
-             gunicorn --bind 0.0.0.0:8000 uksc_backend_django.wsgi:application"
+    command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
     ports:
       - "8000:8000"
     depends_on:
       - db
-    environment:
-      DJANGO_SETTINGS_MODULE: uksc_backend_django.settings
-      DATABASE_URL: postgres://postgres:postgres@db:5432/food_supplier_db
-      DEBUG: "False"
-      ALLOWED_HOSTS: "your-railway-app-url.up.railway.app"
     networks:
       - app_network
 
