@@ -6,27 +6,14 @@ import pandas as pd
 import django
 import os
 import sys
+from constants import country_list
+from utils import add_pdf_highlighting, standardise_country_names
 
 sys.path.append('/home/mogs/Desktop/webdev_projects/uksupplychain/uksc_backend/uksc_backend_django')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'uksc_backend_django.settings')
 django.setup()
 
 from base.models import Supplier 
-
-country_list = [
-    "United Kingdom", "United States", "China", "Germany", "India", "Japan", "France", "Italy", "Brazil",
-    "Canada", "Australia", "South Korea", "Spain", "Mexico", "Netherlands", "Russia", "Sweden", "Switzerland",
-    "Belgium", "Singapore", "South Africa", "Austria", "Poland", "Turkey", "Norway", "Saudi Arabia", "Argentina",
-    "United Arab Emirates", "Thailand", "Malaysia", "Israel", "Chile", "Nigeria", "Indonesia", "Denmark",
-    "Finland", "Ireland", "Vietnam", "Egypt", "Chile", "Pakistan", "Romania", "Czech Republic", "Greece", 
-    "New Zealand", "Portugal", "Hungary", "Israel", "Egypt", "South Africa", "Malaysia", "Philippines",
-    "Colombia", "Peru", "Bangladesh", "Vietnam", "Nigeria", "Algeria", "Ukraine", "Poland", "Egypt", "Kazakhstan",
-    "Morocco", "Jordan", "Iraq", "Kuwait", "Qatar", "Oman", "Kenya", "Ethiopia", "Zimbabwe", "Uzbekistan", 
-    "Azerbaijan", "Belarus", "Sri Lanka", "Bulgaria", "Croatia", "Slovakia", "Slovenia", "Lithuania", "Latvia",
-    "Estonia", "Macedonia", "Bosnia", "Montenegro", "Serbia", "Kosovo", "Albania", "Kosovo", "Armenia", 
-    "Georgia", "Tanzania", "Uganda", "Angola", "Zambia", "Nepal", "Cambodia", "Laos", "Myanmar", "Mongolia",
-    "Malawi", "Botswana", "Togo", "Benin", "Gabon", "Mauritius", "Seychelles", "Malta", "San Marino", "Monaco", "Scotland", "Wales"
-]
 
 def find_country_in_address(address, total_text):
     # Sample cutoff address to search for
@@ -53,15 +40,15 @@ def extract_text_from_pdf(file_path, company):
     if (company == "Sainsburys"):
         reader = PdfReader(file_path)
         names = []
-        addresses_all = []
+        addresses = []
         sectors = []
         workers = []
         countries = []
 
         doc = fitz.open(file_path)
 
-        # Access the first page (0-indexed)
-        page = doc[0]  # Change index for other pages if needed
+        # Access the first page 
+        page = doc[0]
 
         # Define the bounding box (bbox)
         bboxes = [
@@ -72,7 +59,6 @@ def extract_text_from_pdf(file_path, company):
         ]
         total_text = ""
         for page_num, page in enumerate(doc):
-            addresses = []
             total_text += reader.pages[page_num].extract_text()  # Extract text from each page
 
             for index, bbox in enumerate(bboxes):
@@ -93,7 +79,6 @@ def extract_text_from_pdf(file_path, company):
                         if (index == 1):
                             if (line != ''):
                                 addresses.append(line)
-                                addresses_all.append(line)
                         if (index == 2):
                             if (line != ''):
                                 sectors.append(line)
@@ -102,19 +87,15 @@ def extract_text_from_pdf(file_path, company):
                                 workers.append(int(line))
 
 
-        for address_line in addresses_all:
+        for address_line in addresses:
             country = find_country_in_address(address_line, total_text)
             countries.append(country)
-        print(len(names))
-        print(len(addresses_all))
-        print(len(sectors))
-        print(len(workers))
-        print(len(countries))
+        
         workers.insert(0, "workers")
 
         data = {
             "supplier": names,
-            "address": addresses_all,
+            "address": addresses,
             "sector": sectors,
             "workers": workers,
             "country": countries
@@ -122,6 +103,7 @@ def extract_text_from_pdf(file_path, company):
 
         df = pd.DataFrame(data)
 
+        # Remove first row (duplicated headers)
         df = df.iloc[1:].reset_index(drop=True)
 
         return df
@@ -129,17 +111,17 @@ def extract_text_from_pdf(file_path, company):
     if (company == "Tesco"):
         reader = PdfReader(file_path)
         names = []
-        addresses_all = []
+        addresses = []
         sectors = []
         workers = []
         countries = []
 
         doc = fitz.open(file_path)
 
-        # Access the first page (0-indexed)
-        page = doc[0]  # Change index for other pages if needed
+        page = doc[0]
 
         # Define the bounding box (bbox)
+        # supplier, address, country, workers, sector
         bboxes = [
             fitz.Rect(50, 0, 290, 1200),
             fitz.Rect(292, 0, 432, 1000),
@@ -150,7 +132,6 @@ def extract_text_from_pdf(file_path, company):
         total_text = ""
         
         for page_num, page in enumerate(doc):
-            addresses = []
             total_text += reader.pages[page_num].extract_text()  # Extract text from each page
 
             for index, bbox in enumerate(bboxes):
@@ -163,15 +144,7 @@ def extract_text_from_pdf(file_path, company):
                     bbox.y1  = 537
 
                 if page_num == 1:
-                    # Highlight the bbox
-                    highlight = page.add_rect_annot(bbox)
-                    highlight.set_colors({"stroke": (1, 0, 0), "fill": (1, 1, 0)})  # Red stroke, yellow fill
-                    highlight.update()
-
-                    # Save the modified PDF without incremental saving
-                    output_path = "highlighted_output" + str(index) + ".pdf"
-                    doc.save(output_path)
-                    print(f"Highlighted PDF saved to {output_path}")
+                    add_pdf_highlighting(index, page, bbox, doc)
 
                 # Extract text within the bbox
                 text_in_bbox = page.get_text("blocks", clip=bbox)
@@ -181,73 +154,52 @@ def extract_text_from_pdf(file_path, company):
                     block_text = block[4]  # Text content of the block
                     print("New block")
                     print(block_text)
-                    # If you want to further extract lines from the block, you can split by line breaks:
                     line = block_text
                     print("lines")
                
                     line = line.strip()
                     if (index == 0):
-                            names.append(line)
+                        names.append(line)
                     if (index == 1):
                         None
-                            # addresses.append(line)
-                            # addresses_all.append(line)
                     if (index == 2):
-                            addresses.append(line)
-                            addresses_all.append(line)
-                            # sectors.append(None)
-                            # sectors.append(line)
+                        addresses.append(line)
                     if (index == 3):
-                            countries.append(line)
+                        countries.append(line)
                     if (index == 4):
-                            workers.append(line)
+                        workers.append(line)
 
         # workers.insert(0, "workers")
         # addresses_all.insert(301, "Cranswick Plc") # If using company names
 
-        addresses_all[294] = str.replace(addresses_all[294], """Lot A01-A12, Zone A, Phong Dien Industrial Zone Phong Dien Town, 
+        addresses[294] = str.replace(addresses[294], """Lot A01-A12, Zone A, Phong Dien Industrial Zone Phong Dien Town, 
         Phong Dien District Phong Dien 530000""", "")
-        addresses_all.insert(294, """Lot A01-A12, Zone A, Phong Dien Industrial Zone Phong Dien Town, 
+        addresses.insert(294, """Lot A01-A12, Zone A, Phong Dien Industrial Zone Phong Dien Town, 
 Phong Dien District Phong Dien 530000""")
 
-        addresses_all[846] = str.replace(addresses_all[846], """NO.133 SHUANGYUAN ROAD,CHENGYANG 
+        addresses[846] = str.replace(addresses[846], """NO.133 SHUANGYUAN ROAD,CHENGYANG 
 DISTRICT,QINGDAO,CHINA/NO.27-1,Tianshan 3rd Road, Daxin 
 Street,Jimo District, Qingdao, China  Qingdao 266109""", "")
-        addresses_all.insert(846, """NO.133 SHUANGYUAN ROAD,CHENGYANG 
+        addresses.insert(846, """NO.133 SHUANGYUAN ROAD,CHENGYANG 
 DISTRICT,QINGDAO,CHINA/NO.27-1,Tianshan 3rd Road, Daxin 
 Street,Jimo District, Qingdao, China  Qingdao 266109""")
         
-        addresses_all[923] = str.replace(addresses_all[923], """CTRA. CUEVAS DEL ALMANZORA-AGUILAS KM.11 CUEVAS DEL ALMANZORA Cuevas de Almanzora 4610""", "")
-        addresses_all.insert(924, """CTRA. CUEVAS DEL ALMANZORA-AGUILAS KM.11 CUEVAS DEL 
+        addresses[923] = str.replace(addresses[923], """CTRA. CUEVAS DEL ALMANZORA-AGUILAS KM.11 CUEVAS DEL ALMANZORA Cuevas de Almanzora 4610""", "")
+        addresses.insert(924, """CTRA. CUEVAS DEL ALMANZORA-AGUILAS KM.11 CUEVAS DEL 
 ALMANZORA Cuevas de Almanzora 4610""")
         
-        addresses_all[952] = str.replace(addresses_all[952], """No.1358 & No. 1428 Jiahang Rd, Xuhang Town, Jiading District  
+        addresses[952] = str.replace(addresses[952], """No.1358 & No. 1428 Jiahang Rd, Xuhang Town, Jiading District  
 Shanghai 201808""", "")
-        addresses_all.insert(953, """No.1358 & No. 1428 Jiahang Rd, Xuhang Town, Jiading District  
+        addresses.insert(953, """No.1358 & No. 1428 Jiahang Rd, Xuhang Town, Jiading District  
 Shanghai 201808""") 
 
         data = {
             "supplier": names,
-            "address": addresses_all,
+            "address": addresses,
             # "sector": sectors,
             "workers": workers,
             "country": countries
         }
-        # Determine the number of rows (assuming all lists have the same length)
-        num_rows = len(names)
-
-        # Loop through each row and print the values
-        for i in range(min(num_rows, 976)):  # Ensure only first 10 rows are printed
-            print(f"Row {i+1}:")
-            for key in data:
-                print(f"{key.capitalize()}: {data[key][i]}")
-            print()  # Blank line for better readability
-        
-        print(len(names))
-        print(len(addresses_all))
-        print(len(sectors))
-        print(len(workers))
-        print(len(countries))
 
         data_subset = {key: value[0:1137] for key, value in data.items()}
         for key, value in data_subset.items():
@@ -301,27 +253,27 @@ def extract_asda_csv(row):
 
 if __name__ == "__main__":
 
+    root_path = "/home/mogs/Desktop/webdev_projects/uksupplychain/uksc_backend/uksc_backend_django"
     data_definition = [
         {
             "company": "Tesco",
-            "filename": "/home/mogs/Desktop/webdev_projects/uksupplychain/uksc_backend/uksc_backend_django/data/tesco_2024.pdf",
+            "filename": root_path + "/data/tesco_2024.pdf",
             "year": "2024"
         },
          {
             "company": "Sainsburys",
-            "filename": "/home/mogs/Desktop/webdev_projects/uksupplychain/uksc_backend/uksc_backend_django/data/sainsburys_2024_food.pdf",
+            "filename": root_path + "/data/sainsburys_2024_food.pdf",
             "year": "2024"
         },
           {
             "company": "Asda",
-            "filename": "/home/mogs/Desktop/webdev_projects/uksupplychain/uksc_backend/uksc_backend_django/data/asda_2024.csv",
+            "filename": root_path + "/data/asda_2024.csv",
             "year": "2024"
         }
     ]
 
     total_data = pd.DataFrame()
 
-    # supplier, address, country, workers, sector
     for row in data_definition:
         if (row["company"] == "Asda"):
             df = extract_asda_csv(row)
@@ -331,28 +283,20 @@ if __name__ == "__main__":
             df["source_business"] = row["company"]
             df['sector'] = None
         total_data = pd.concat([total_data, df])
-        filename = row["company"] + ".csv"
+        filename = row["company"].lower() + ".csv"
         df.to_csv(filename, index=False)
     
-    country_dictionary = {
-        "Türkiye": "Turkey",
-        "Cyprus (South)": "Cyprus",
-        """Republic of                     +
-        | Ireland""": "Ireland",
-        "United States": "USA",
-        "Scotland": "United Kingdom"
-    }
-
-    total_data['country'] = total_data['country'].apply(lambda x: country_dictionary.get(x, x))
+    total_data = standardise_country_names(total_data)
 
     total_data.to_csv("total_data.csv", index=False)
-    for _, row in total_data.iterrows():
-        Supplier.objects.create(
-            supplier=row['supplier'],
-            address=row['address'],
-            country=row['country'],
-            workers=row['workers'],
-            sector=row['sector'],
-            year=row['year'],
-            source_business=row['source_business']
-        )
+
+    # for _, row in total_data.iterrows():
+    #     Supplier.objects.create(
+    #         supplier=row['supplier'],
+    #         address=row['address'],
+    #         country=row['country'],
+    #         workers=row['workers'],
+    #         sector=row['sector'],
+    #         year=row['year'],
+    #         source_business=row['source_business']
+    #     )
