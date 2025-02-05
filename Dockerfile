@@ -25,11 +25,8 @@ COPY . .
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && pip install -r requirements.txt
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
-
 # Expose the port
 EXPOSE 8000
 
 # Run Gunicorn as the application server
-CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn --bind 0.0.0.0:8000 uksc_backend_django.wsgi:application"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 uksc_backend_django.wsgi:application"]
