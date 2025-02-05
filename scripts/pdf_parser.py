@@ -1,29 +1,17 @@
 from PyPDF2 import PdfReader
 import pdfplumber
 import fitz
-
 import re
 import pandas as pd
-
 import django
 import os
 import sys
+
 sys.path.append('/home/mogs/Desktop/webdev_projects/uksupplychain/uksc_backend/uksc_backend_django')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'uksc_backend_django.settings')
 django.setup()
 
 from base.models import Supplier 
-
-get_pattern = {
-    "Tesco": r"""
-        (?P<site_name>.+?)\s{2,}                # Site name until the first hyphen
-        (?P<company_name>.+?)\s{2,}           # Company name, separated by spaces
-        (?P<site_address>.+?)\s{2,}           # Site address, separated by spaces
-        (?P<country>[A-Za-z\s]+)\s{2,}        # Country name
-        (?P<total_workers>\d+|N/A)            # Total workers (number or N/A)
-    """,
-    "Sainsburys": r""""""
-}
 
 country_list = [
     "United Kingdom", "United States", "China", "Germany", "India", "Japan", "France", "Italy", "Brazil",
@@ -39,39 +27,6 @@ country_list = [
     "Georgia", "Tanzania", "Uganda", "Angola", "Zambia", "Nepal", "Cambodia", "Laos", "Myanmar", "Mongolia",
     "Malawi", "Botswana", "Togo", "Benin", "Gabon", "Mauritius", "Seychelles", "Malta", "San Marino", "Monaco", "Scotland", "Wales"
 ]
-
-# Define a function to parse the text
-def parse_pdf_text(text, year, company):
-
-    header = """  Total 
-Workers"""
-    if header in text:
-        # Extract the portion after the header
-        text = text.split(header, 1)[1].strip()
-    else:
-        print("Header not found!")
-        return pd.DataFrame()  # Return empty DataFrame if header is missing
-
-
-    # Magic.
-    text = text.replace(" Poland", "  Poland", 1)
-
-    # Regex pattern for structured parsing
-    pattern = get_pattern[company]
-
-    # Use re.findall with the pattern
-    matches = list(re.finditer(pattern, text, re.VERBOSE))  # Convert iterator to a list
-    
-    # Create a list of parsed data
-    data = []
-    for match in matches:
-        data.append(match.groupdict())
-
-    print(text[:300])
-    df =  pd.DataFrame(data)
-        
-    # Return as a DataFrame for better handling
-    return df
 
 def find_country_in_address(address, total_text):
     # Sample cutoff address to search for
@@ -312,6 +267,36 @@ Shanghai 201808""")
         for page in reader.pages:
             text += page.extract_text()
         return text
+    
+def extract_asda_csv(row):
+    df = pd.read_csv(row["filename"])
+    df_filtered = df.filter(items=["name", "address", "country_name"])
+    pattern = r"Asda \(Asda OSH facility list 2024 \(January - June 2024\)\)$"
+    df_filtered["workers"] = None
+    df_filtered["sector"] = None
+    # Iterate over the rows
+    for index, dat in df.iterrows():
+        print(dat)
+        if re.search(pattern, dat["contributor (list)"]):
+            # Extract the last digits from "number_of_workers"
+            if (dat["number_of_workers"] and not pd.isna(dat["number_of_workers"])):
+                last_digits = re.search(r"[\d-]+$", dat["number_of_workers"])
+                if last_digits:
+                    df_filtered.at[index, "workers"] = last_digits.group()
+
+            # Extract the last set of characters not including "|"
+            if (dat["sector"]):
+                last_sector = re.search(r"[^|]+$", dat["sector"])
+                if last_sector:
+                    df_filtered.at[index, "sector"] = last_sector.group().strip()
+
+    # Print or save the filtered DataFrame
+    print(df_filtered)
+    df_filtered['year'] = row["year"]
+    df_filtered["source_business"] = row["company"]
+    df_filtered = df_filtered.rename(columns={'name': 'supplier', 'country_name': 'country'})
+    return df_filtered
+
 
 
 if __name__ == "__main__":
@@ -338,55 +323,16 @@ if __name__ == "__main__":
 
     # supplier, address, country, workers, sector
     for row in data_definition:
-        match row["company"]:
-            case "Tesco":
-                df = extract_text_from_pdf(row["filename"], row["company"])
-                df['year'] = row["year"]
-                df["source_business"] = row["company"]
-                df['sector'] = None
-                # df = df.rename(columns={'company_name': 'supplier', 'site_address': 'address', 'total_workers': 'workers'})
-                print(df.columns)
-                # df = df.drop(['site_name'], axis=1)
-                total_data = pd.concat([total_data, df])
-                df.to_csv("tescos.csv", index=False)
-            case "Sainsburys":
-                df = extract_text_from_pdf(row["filename"], row["company"])
-                df['year'] = row["year"]
-                df["source_business"] = row["company"]
-                # df = df.rename(columns={'country_name': 'country', 'name': 'supplier'})
-                total_data =  pd.concat([total_data, df])
-                df.to_csv("sainsburys.csv", index=False)
-            case "Asda":
-                df = pd.read_csv(row["filename"])
-                df_filtered = df.filter(items=["name", "address", "country_name"])
-                pattern = r"Asda \(Asda OSH facility list 2024 \(January - June 2024\)\)$"
-                df_filtered["workers"] = None
-                df_filtered["sector"] = None
-               # Iterate over the rows
-                for index, dat in df.iterrows():
-                    print(dat)
-                    if re.search(pattern, dat["contributor (list)"]):
-                        # Extract the last digits from "number_of_workers"
-                        if (dat["number_of_workers"] and not pd.isna(dat["number_of_workers"])):
-                            last_digits = re.search(r"[\d-]+$", dat["number_of_workers"])
-                            if last_digits:
-                                df_filtered.at[index, "workers"] = last_digits.group()
-
-                        # Extract the last set of characters not including "|"
-                        if (dat["sector"]):
-                            last_sector = re.search(r"[^|]+$", dat["sector"])
-                            if last_sector:
-                                df_filtered.at[index, "sector"] = last_sector.group().strip()
-
-                # Print or save the filtered DataFrame
-                print(df_filtered)
-                df_filtered['year'] = row["year"]
-                df_filtered["source_business"] = row["company"]
-                df_filtered = df_filtered.rename(columns={'name': 'supplier', 'country_name': 'country'})
-                total_data = pd.concat([total_data, df_filtered])
-                df_filtered.to_csv("asda.csv", index=False)
-            case _:
-                parsed_data = pd.DataFrame()
+        if (row["company"] == "Asda"):
+            df = extract_asda_csv(row)
+        else:
+            df = extract_text_from_pdf(row["filename"], row["company"])
+            df['year'] = row["year"]
+            df["source_business"] = row["company"]
+            df['sector'] = None
+        total_data = pd.concat([total_data, df])
+        filename = row["company"] + ".csv"
+        df.to_csv(filename, index=False)
     
     country_dictionary = {
         "Türkiye": "Turkey",
