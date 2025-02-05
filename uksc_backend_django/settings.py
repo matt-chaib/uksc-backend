@@ -93,11 +93,11 @@ environ.Env.read_env()
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DB_NAME', default=os.getenv('DB_NAME')),
-        'USER': env('DB_USER', default=os.getenv('DB_USER')),
-        'PASSWORD': env('DB_PASSWORD', default=os.getenv('DB_PASSWORD')),
-        'HOST': env('DB_HOST', default=os.getenv('DB_HOST')),
-        'PORT': env('DB_PORT', default=os.getenv('DB_PORT')),
+        'NAME': env('PGDATABASE', default=os.getenv('PGDATABASE')),
+        'USER': env('PGUSER', default=os.getenv('PGUSER')),
+        'PASSWORD': env('PGPASSWORD', default=os.getenv('PGPASSWORD')),
+        'HOST': env('PGHOST', default=os.getenv('PGHOST')),
+        'PORT': env('PGPORT', default=os.getenv('PGPORT', 5432)),  # Default port for PostgreSQL
     }
 }
 DEBUG = env('DEBUG', default=False)
