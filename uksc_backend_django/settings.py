@@ -97,6 +97,8 @@ DATABASES = {
         conn_max_age=600,  # Optional: connection pooling
     )
 }
+DATABASES['default']['ENGINE'] = 'django.contrib.gis.db.backends.postgis'
+
 DEBUG = env('DEBUG', default=False)
 SECRET_KEY = env('SECRET_KEY')
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost'])
