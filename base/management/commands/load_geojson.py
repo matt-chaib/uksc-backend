@@ -11,5 +11,7 @@ class Command(BaseCommand):
             geojson_data = json.load(f)
             for feature in geojson_data['features']:
                 properties = feature['properties']
+                if properties['name'] == "United States of America":
+                    properties['name'] = "USA"
                 geometry = GEOSGeometry(json.dumps(feature['geometry']))
                 CountryData.objects.create(name=properties['name'], geom=geometry)

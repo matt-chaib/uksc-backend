@@ -1,12 +1,12 @@
-- Standardise the naming of countries between supermarkets
-- Shapefile etc... for interactive map (https://leafletjs.com/examples/choropleth/)
-- Do data transformations on the back-end.
-- only show stacked bar for top 10 countries in terms of total supplies.
-- Filter Asda data for food related items (there's a column I haven't used denoting it)
+- Filter Asda data for food related items (there's a column I haven't used denoting it) ? 
 - More supermarkets!
 - Changes over time (across all supermarkets)
 - Data download?
-- Make stacked bar % for each country and fix the colours so they don't change.
+
+- Shopping list page
+    - Add list of groceries (from searchable dropdown?).
+    - Create map of suppliers.
+    - Requires products list, and products to be mapped to suppliers
 
 - Future thoughts:
     - How does supply change with the seasons?

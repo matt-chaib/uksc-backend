@@ -47,12 +47,30 @@ def get_supplier_data(request):
 
 @api_view(['GET'])
 def count_country_by_year_and_supermarket(request, year):
-    result = (
+    data = (
         Supplier.objects.filter(year=year)
         .values('source_business', 'country')
         .annotate(country_count=Count('country'))
         .order_by('source_business', 'country')
     )
+
+    all_countries = {entry["country"] for entry in data}
+
+    result_dict = defaultdict(dict)
+
+    for entry in data:
+        country = entry["country"]
+        business = entry["source_business"]
+        count = entry["country_count"]
+        result_dict[business]["source_business"] = business  # Ensure country is always set
+        result_dict[business][country] = count     # Set business count for each source_business
+
+    for business_data in result_dict.values():
+        for country in all_countries:
+            business_data.setdefault(country, 0)
+    # Convert the grouped data into a list
+    result = list(result_dict.values())
+
 
     # Return the results as JSON
     return Response(result)
@@ -68,9 +86,9 @@ def count_supermarket_by_year_and_country(request, year):
 
     data = (
         Supplier.objects.filter(year=year)
-        .filter(
-            Q(source_business='Asda', sector__in=asda_sectors) | ~Q(source_business='Asda')
-        )
+        # .filter(
+        #     Q(source_business='Asda', sector__in=asda_sectors) | ~Q(source_business='Asda')
+        # )
         .values('source_business', 'country')
         .annotate(business_count=Count('source_business'))
         .order_by('source_business', 'country')
@@ -98,16 +116,20 @@ def count_supermarket_by_year_and_country(request, year):
 
 @api_view(['GET'])
 def count_country_by_year(request, year):
+    source_business = request.GET.get('source_business')  # Retrieve the source_business from query parameters
+
+    # Base queryset
+    queryset = Supplier.objects.filter(year=year)
+
+    if source_business:  # Apply filter if source_business is provided
+        queryset = queryset.filter(source_business=source_business)
+
     result = (
-        Supplier.objects.filter(year=year)
+        queryset
         .values('country')
         .annotate(count=Count('country'))
         .order_by('country')
     )
-
-    # For debugging: print results to the console
-    for item in result:
-        print(item)
 
     # Return the results as JSON
     return Response(result)

@@ -9,3 +9,5 @@ docker compose exec web python manage.py makemigrations
 psql -h localhost -U postgres -d food_supplier_db -p 5432
 
 docker compose exec db psql -U postgres -d food_supplier_db
+
+docker compose exec web python manage.py update_country_name
