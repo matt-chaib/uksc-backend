@@ -57,6 +57,9 @@ data/*
 
 output_data/*
 
+!data/total_data.csv
+!data/countries.geo.json
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
