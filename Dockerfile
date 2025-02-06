@@ -22,6 +22,9 @@ ENV GDAL_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgdal.so
 # Copy the project files
 COPY . .
 
+COPY data/total_data.csv /app/data/total_data.csv
+COPY data/countries.geo.json /app/data/countries.geo.json
+
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && pip install -r requirements.txt
 

@@ -1,6 +1,7 @@
 import pandas as pd
 from django.core.management.base import BaseCommand
 import django
+import os
 
 django.setup()
 
@@ -10,9 +11,20 @@ class Command(BaseCommand):
     help = 'Seeds the database with data from a pandas DataFrame'
 
     def handle(self, *args, **kwargs):
-        # Load your pandas DataFrame from your script
-        # Example: Assuming your pandas script is inside /scripts and creates a DataFrame
-        df = pd.read_csv('output_data/total_data.csv')  # or use any method to load your DataFrame
+        # Determine the correct path dynamically
+        docker_path = '/app/data/total_data.csv'  # Path inside Docker container
+        local_path = 'data/total_data.csv'  # Path in local development
+
+        # Check which path exists
+        if os.path.exists(docker_path):
+            file_path = docker_path  # Running inside Docker
+        elif os.path.exists(local_path):
+            file_path = local_path  # Running in local development
+        else:
+            raise FileNotFoundError("total_data.csv not found in either /app/data/ or ./data/")
+
+
+        df = pd.read_csv(file_path)  # or use any method to load your DataFrame
         print(df)
         workers = 0 # row['workers'] if pd.notna(row['workers']) else 0 # Set to None if NaN
 
