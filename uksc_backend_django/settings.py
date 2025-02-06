@@ -101,7 +101,7 @@ DATABASES['default']['ENGINE'] = 'django.contrib.gis.db.backends.postgis'
 
 DEBUG = env('DEBUG', default=False)
 SECRET_KEY = env('SECRET_KEY')
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost'])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '.railway.app'])
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
