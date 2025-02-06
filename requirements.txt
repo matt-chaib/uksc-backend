@@ -8,3 +8,4 @@ django-environ
 djangorestframework-gis
 dj_database_url
 gunicorn
+whitenoise
