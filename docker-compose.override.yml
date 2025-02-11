@@ -16,6 +16,9 @@ services:
       - app_network
 
   web:
+    environment:
+      - ALLOWED_HOSTS=0.0.0.0,localhost,127.0.0.1
+      - RUN_SEED=false
     build: .
     container_name: django_app
     command: python manage.py runserver 0.0.0.0:8000
