@@ -31,5 +31,7 @@ RUN pip install --no-cache-dir --upgrade pip && pip install -r requirements.txt
 # Expose the port
 EXPOSE 8000
 
-# Run Gunicorn as the application server
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py seed_database && python manage.py load_geojson && gunicorn --bind 0.0.0.0:8000 uksc_backend_django.wsgi:application"]
+# Run entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+CMD ["/app/entrypoint.sh"]
